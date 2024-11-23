@@ -1,13 +1,14 @@
 ﻿@page "/"
 @using Binance.Net.Interfaces
 @using Blazor.DataProvider
+@using CryptoExchange.Net.Objects.Sockets;
 @using CryptoExchange.Net.Sockets
 
 @inject BinanceDataProvider _dataProvider
 @implements IAsyncDisposable
 
 <div>
-    <h3>24h data</h3>
+    <h3>Live 24h change data</h3>
     @foreach (var tick in _ticks)
     {
         <div>@tick.Symbol | @tick.PriceChangePercent%</div>

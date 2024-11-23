@@ -8,11 +8,15 @@
         /// <summary>
         /// The address used by the BinanceClient for the Spot API
         /// </summary>
-        public string RestClientAddress { get; set; } = "";
+        public string RestClientAddress { get; set; } = string.Empty;
+        /// <summary>
+        /// The address used by the BinanceSocketClient for the Spot streams
+        /// </summary>
+        public string SocketClientStreamAddress { get; set; } = string.Empty;
         /// <summary>
         /// The address used by the BinanceSocketClient for the Spot API
         /// </summary>
-        public string SocketClientAddress { get; set; } = "";
+        public string SocketClientApiAddress { get; set; } = string.Empty;
         /// <summary>
         /// The address used by the BinanceSocketClient for connecting to the BLVT streams
         /// </summary>
@@ -22,9 +26,13 @@
         /// </summary>
         public string? UsdFuturesRestClientAddress { get; set; }
         /// <summary>
-        /// The address used by the BinanceSocketClient for the USD futures API
+        /// The address used by the BinanceSocketClient for the USD futures streams
         /// </summary>
         public string? UsdFuturesSocketClientAddress { get; set; }
+        /// <summary>
+        /// The address used by the BinanceSocketClient for the USD futures API
+        /// </summary>
+        public string? UsdFuturesSocketApiClientAddress { get; set; }
 
         /// <summary>
         /// The address used by the BinanceClient for the COIN futures API
@@ -41,10 +49,12 @@
         public static BinanceApiAddresses Default = new BinanceApiAddresses
         {
             RestClientAddress = "https://api.binance.com",
-            SocketClientAddress = "wss://stream.binance.com:9443/",
-            BlvtSocketClientAddress = "wss://nbstream.binance.com/lvt-p",
+            SocketClientStreamAddress = "wss://stream.binance.com:9443/",
+            SocketClientApiAddress = "wss://ws-api.binance.com:443/",
+            BlvtSocketClientAddress = "wss://nbstream.binance.com/",
             UsdFuturesRestClientAddress = "https://fapi.binance.com",
             UsdFuturesSocketClientAddress = "wss://fstream.binance.com/",
+            UsdFuturesSocketApiClientAddress = "wss://ws-fapi.binance.com/",
             CoinFuturesRestClientAddress = "https://dapi.binance.com",
             CoinFuturesSocketClientAddress = "wss://dstream.binance.com/",
         };
@@ -55,10 +65,12 @@
         public static BinanceApiAddresses TestNet = new BinanceApiAddresses
         {
             RestClientAddress = "https://testnet.binance.vision",
-            SocketClientAddress = "wss://testnet.binance.vision",
+            SocketClientStreamAddress = "wss://testnet.binance.vision",
+            SocketClientApiAddress = "wss://testnet.binance.vision",
             BlvtSocketClientAddress = "wss://fstream.binancefuture.com",
             UsdFuturesRestClientAddress = "https://testnet.binancefuture.com",
             UsdFuturesSocketClientAddress = "wss://fstream.binancefuture.com",
+            UsdFuturesSocketApiClientAddress = "wss://testnet.binancefuture.com",
             CoinFuturesRestClientAddress = "https://testnet.binancefuture.com",
             CoinFuturesSocketClientAddress = "wss://dstream.binancefuture.com",
         };
@@ -69,7 +81,8 @@
         public static BinanceApiAddresses Us = new BinanceApiAddresses
         {
             RestClientAddress = "https://api.binance.us",
-            SocketClientAddress = "wss://stream.binance.us:9443",
+            SocketClientApiAddress = "wss://ws-api.binance.us:443",
+            SocketClientStreamAddress = "wss://stream.binance.us:9443",
         };
     }
 }

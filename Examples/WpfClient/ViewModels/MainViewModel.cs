@@ -12,6 +12,7 @@ using WpfClient.MessageBox;
 using WpfClient.UserControls;
 using Binance.Net.Clients;
 using Binance.Net.Objects.Models.Spot.Socket;
+using CryptoExchange.Net.Objects.Sockets;
 
 namespace WpfClient.ViewModels
 {
@@ -125,7 +126,7 @@ namespace WpfClient.ViewModels
         public async Task Cancel(object o)
         {
             var order = (OrderViewModel)o;
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.Trading.CancelOrderAsync(SelectedSymbol.Symbol, order.Id);
                 if (result.Success)
@@ -137,7 +138,7 @@ namespace WpfClient.ViewModels
 
         public async Task Buy(object o)
         {
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.Trading.PlaceOrderAsync(SelectedSymbol.Symbol, OrderSide.Buy, SpotOrderType.Limit, SelectedSymbol.TradeAmount, price: SelectedSymbol.TradePrice, timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
@@ -149,7 +150,7 @@ namespace WpfClient.ViewModels
 
         public async Task Sell(object o)
         {
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.Trading.PlaceOrderAsync(SelectedSymbol.Symbol, OrderSide.Sell, SpotOrderType.Limit, SelectedSymbol.TradeAmount, price: SelectedSymbol.TradePrice, timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
@@ -171,7 +172,7 @@ namespace WpfClient.ViewModels
             settings = null;
 
             if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
-                BinanceClient.SetDefaultOptions(new BinanceClientOptions() { ApiCredentials = new ApiCredentials(apiKey, apiSecret) });
+                BinanceRestClient.SetDefaultOptions(options => { options.ApiCredentials = new ApiCredentials(apiKey, apiSecret); });
 
             await GetOrders();
             await SubscribeUserStream();
@@ -179,7 +180,7 @@ namespace WpfClient.ViewModels
 
         private async Task GetAllSymbols()
         {
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.ExchangeData.GetPricesAsync();
                 if (result.Success)
@@ -189,7 +190,7 @@ namespace WpfClient.ViewModels
             }
 
             socketClient = new BinanceSocketClient();
-            var subscribeResult = await socketClient.SpotStreams.SubscribeToAllTickerUpdatesAsync(data =>
+            var subscribeResult = await socketClient.SpotApi.ExchangeData.SubscribeToAllTickerUpdatesAsync(data =>
             {
                 foreach (var ud in data.Data)
                 {
@@ -205,7 +206,7 @@ namespace WpfClient.ViewModels
 
         private async Task Get24HourStats()
         {
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.ExchangeData.GetTickerAsync(SelectedSymbol.Symbol);
                 if (result.Success)
@@ -235,7 +236,7 @@ namespace WpfClient.ViewModels
                 return;
             }
 
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var result = await client.SpotApi.Trading.GetOrdersAsync(SelectedSymbol.Symbol);
                 if (result.Success)
@@ -263,7 +264,7 @@ namespace WpfClient.ViewModels
             if (ApiKey == null || ApiSecret == null)
                 return;
             
-            using (var client = new BinanceClient())
+            using (var client = new BinanceRestClient())
             {
                 var startOkay = await client.SpotApi.Account.StartUserStreamAsync();
                 if (!startOkay.Success)
@@ -272,7 +273,7 @@ namespace WpfClient.ViewModels
                     return;
                 }
 
-                var subOkay = await socketClient.SpotStreams.SubscribeToUserDataUpdatesAsync(startOkay.Data, OnOrderUpdate, null, OnAccountUpdate, null);
+                var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(startOkay.Data, OnOrderUpdate, null, OnAccountUpdate, null);
                 if (!subOkay.Success)
                 {
                     messageBoxService.ShowMessage($"Error subscribing to user stream: {subOkay.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);

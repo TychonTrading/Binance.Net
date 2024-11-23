@@ -7,18 +7,17 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Binance.Net.Clients;
-using Binance.Net.Interfaces;
 using Binance.Net.Interfaces.Clients;
-using Binance.Net.Objects;
-using CryptoExchange.Net;
+using Binance.Net.Objects.Models.Futures;
+using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Interfaces;
-using CryptoExchange.Net.Logging;
-using CryptoExchange.Net.Sockets;
+using CryptoExchange.Net.Objects.Sockets;
+using Microsoft.Extensions.Logging;
 using Moq;
-using Newtonsoft.Json;
 
 namespace Binance.Net.UnitTests.TestImplementations
 {
@@ -64,38 +63,45 @@ namespace Binance.Net.UnitTests.TestImplementations
             return self == to;
         }
 
-        public static IBinanceSocketClient CreateSocketClient(IWebsocket socket, BinanceSocketClientOptions options = null)
+        public static IBinanceSocketClient CreateSocketClient(IWebsocket socket, Action<BinanceSocketOptions> options = null)
         {
             BinanceSocketClient client;
             client = options != null ? new BinanceSocketClient(options) : new BinanceSocketClient();
-            client.SocketFactory = Mock.Of<IWebsocketFactory>();
-            Mock.Get(client.SocketFactory).Setup(f => f.CreateWebsocket(It.IsAny<Log>(), It.IsAny<WebSocketParameters>())).Returns(socket);
+            client.SpotApi.SocketFactory = Mock.Of<IWebsocketFactory>();
+            client.UsdFuturesApi.SocketFactory = Mock.Of<IWebsocketFactory>();
+            client.CoinFuturesApi.SocketFactory = Mock.Of<IWebsocketFactory>();
+            Mock.Get(client.SpotApi.SocketFactory).Setup(f => f.CreateWebsocket(It.IsAny<ILogger>(), It.IsAny<WebSocketParameters>())).Returns(socket);
+            Mock.Get(client.UsdFuturesApi.SocketFactory).Setup(f => f.CreateWebsocket(It.IsAny<ILogger>(), It.IsAny<WebSocketParameters>())).Returns(socket);
+            Mock.Get(client.CoinFuturesApi.SocketFactory).Setup(f => f.CreateWebsocket(It.IsAny<ILogger>(), It.IsAny<WebSocketParameters>())).Returns(socket);
             return client;
         }
 
-        public static IBinanceClient CreateClient(BinanceClientOptions options = null)
+        public static IBinanceRestClient CreateClient(Action<BinanceRestOptions> options = null)
         {
-            IBinanceClient client;
-            client = options != null ? new BinanceClient(options) : new BinanceClient();
-            client.RequestFactory = Mock.Of<IRequestFactory>();
+            IBinanceRestClient client;
+            client = options != null ? new BinanceRestClient(options) : new BinanceRestClient();
+            client.SpotApi.RequestFactory = Mock.Of<IRequestFactory>();
+            client.GeneralApi.RequestFactory = Mock.Of<IRequestFactory>();
+            client.CoinFuturesApi.RequestFactory = Mock.Of<IRequestFactory>();
+            client.UsdFuturesApi.RequestFactory = Mock.Of<IRequestFactory>();
             return client;
         }
 
-        public static IBinanceClient CreateResponseClient(string response, BinanceClientOptions options = null)
+        public static IBinanceRestClient CreateResponseClient(string response, Action<BinanceRestOptions> options = null)
         {
-            var client = (BinanceClient)CreateClient(options);
+            var client = (BinanceRestClient)CreateClient(options);
             SetResponse(client, response);
             return client;
         }
 
-        public static IBinanceClient CreateResponseClient<T>(T response, BinanceClientOptions options = null)
+        public static IBinanceRestClient CreateResponseClient<T>(T response, Action<BinanceRestOptions> options = null)
         {
-            var client = (BinanceClient)CreateClient(options);
-            SetResponse(client, JsonConvert.SerializeObject(response));
+            var client = (BinanceRestClient)CreateClient(options);
+            SetResponse(client, JsonSerializer.Serialize(response));
             return client;
         }
 
-        public static void SetResponse(BaseRestClient client, string responseData)
+        public static void SetResponse(BinanceRestClient client, string responseData)
         {
             var expectedBytes = Encoding.UTF8.GetBytes(responseData);
             var responseStream = new MemoryStream();
@@ -111,12 +117,24 @@ namespace Binance.Net.UnitTests.TestImplementations
             request.Setup(c => c.GetHeaders()).Returns(new Dictionary<string, IEnumerable<string>>());
             request.Setup(c => c.GetResponseAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(response.Object));
 
-            var factory = Mock.Get(client.RequestFactory);
+            var factory = Mock.Get(client.SpotApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.UsdFuturesApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.CoinFuturesApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.GeneralApi.RequestFactory);
             factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
                 .Returns(request.Object);
         }
 
-        public static void SetErrorWithResponse(IBinanceClient client, string responseData, HttpStatusCode code)
+        public static void SetErrorWithResponse(IBinanceRestClient client, string responseData, HttpStatusCode code)
         {
             var expectedBytes = Encoding.UTF8.GetBytes(responseData);
             var responseStream = new MemoryStream();
@@ -132,7 +150,19 @@ namespace Binance.Net.UnitTests.TestImplementations
             request.Setup(c => c.GetHeaders()).Returns(new Dictionary<string, IEnumerable<string>>());
             request.Setup(c => c.GetResponseAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(response.Object));
 
-            var factory = Mock.Get(client.RequestFactory);
+            var factory = Mock.Get(client.SpotApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.UsdFuturesApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.CoinFuturesApi.RequestFactory);
+            factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
+                .Returns(request.Object);
+
+            factory = Mock.Get(client.GeneralApi.RequestFactory);
             factory.Setup(c => c.Create(It.IsAny<HttpMethod>(), It.IsAny<Uri>(), It.IsAny<int>()))
                 .Returns(request.Object);
         }
@@ -174,6 +204,19 @@ namespace Binance.Net.UnitTests.TestImplementations
 
             if (type == typeof(IEnumerable<string>))
                 return new[] { "string" + i };
+
+            if (type == typeof(IEnumerable<BinanceFuturesBatchEditOrder>))
+                return new BinanceFuturesBatchEditOrder[1]
+                {
+                    new BinanceFuturesBatchEditOrder
+                    {
+                        OrderId = 1,
+                        Price = 1,
+                        Quantity = 1,
+                        Side = Enums.OrderSide.Sell,
+                        Symbol = "1"
+                    }
+                };
 
             if (type.IsEnum)
             {
